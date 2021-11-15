@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="content-section" style=" color:white;">
+    <div style="display:none">
+        <div id="element" >
+            <div style="display: inline-block;">
+                <select class="form-select" name="options" id ="options">
+                    {% for h in headers %}
+                        <option value="{{h['old']}}">{{h['field']}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: inline-block;width: 15vw;" >
+                <input class="form-control" type="text" name="choice" id="choice">
+            </div>
+            <br><br>
+        </div>
+    </div>
+    <form method="GET" action="" id="searchFormFields">
+        <div id="fields" style="width: 100%">
+            <div id="index" class="form-select form-select-lg">
+            <select class="form-select" form="searchFormFields" name="index" id ="index">
+                {% for i in indices + ['all'] %}
+                    <option value="{{i}}" >{{i}}</option>
+                {% endfor %}
+            </select>
+            
+            </div>
+            <br>
+            <div id="conditions">
+
+            </div>
+            
+            <div style="display:inline-block;padding-left:1vw;" id="next">
+                    <button type="button" class="btn btn-info" onclick="addCondition()">And</button>
+            </div>
+            <br><br>  
+            </div>  
+        </div> 
+        <input type="submit" class="btn btn-success" value="Submit" style="display: inline-block;">
+    </form>
+    </div>
+    <script type="text/javascript">
+        function addCondition(){
+            var original = document.getElementById('element');
+            var clone = original.cloneNode(true);
+            clone.removeAttribute('id');
+            document.getElementById('conditions').appendChild(clone);
+        }
+        
+    </script>
+    <br>
+{% endblock content %}

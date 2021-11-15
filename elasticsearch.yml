@@ -1,0 +1,7 @@
+. . .
+# ---------------------------------- Network -----------------------------------
+#
+# Set the bind address to a specific IP (IPv4 or IPv6):
+#
+network.host: localhost
+. . .
