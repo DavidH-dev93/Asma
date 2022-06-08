@@ -45,7 +45,16 @@ def processHits(hits):
     final = [] 
     for hit in hits:
         final.append(hit['_source'])
-    return final    
+    return final
+
+def generalIndexListAll(index):
+    result  = manager.list()
+    query = generalQueryForSearch(index,[], 1)
+    res = es.search(index=index, body=query)
+    print(len(res['hits']['hits']))
+    result.extend(processHits(res['hits']['hits']))
+    total_result = res['hits']['total']['value']
+    return total_result, result
 
 hitsFromSlice = manager.list()
 
@@ -125,7 +134,6 @@ def buildSlicedQueryForSearch(id,maxt,body):
             "id": id, 
             "max": maxt 
         },       
-
         "query": {
             "bool": {
                 "must": body
@@ -147,8 +155,8 @@ def buildSlicedQuery(id,maxt):
 
 def generalQueryForSearch(index, body, page):
     return {
-        "from": (page-1)*100,
-        "size": 100,
+        "from": (page-1)*1000,
+        "size": 1000,
         "profile": True,
         "query": {
             "bool": {

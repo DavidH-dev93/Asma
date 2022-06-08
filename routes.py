@@ -56,22 +56,18 @@ def upload():
         index = ''
         if request.form.get('indexChoice') != 'other':
             index = request.form.get('indexChoice').lower()
+            elasticfuncs.deleteIndex(index)
         else:
             index = request.form.get('index').lower()
         uploaded_files = request.files.getlist("file[]")
         for file in uploaded_files:
             i = i + 1 
             if file and elasticfuncs.allowed_file(file.filename):
-                print('loading file----->', file.filename)
-                update = request.form.get('update')
-                if update != None:
-                    update = True
-                else:
-                    update = False    
+                print('loading file----->', file.filename)                   
                 index = index.replace(" ","")
                 filename = secure_filename(file.filename)
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                elasticfuncs.upload(app.root_path,UPLOAD_FOLDER + '/' + filename,index, update, filename)
+                elasticfuncs.upload(app.root_path,UPLOAD_FOLDER + '/' + filename,index, False, filename)
                 print("--- %s seconds ---" % (time.time() - start_time))
             if i == len(uploaded_files):
                 return redirect(url_for('home'))
@@ -81,11 +77,12 @@ def upload():
 @app.route('/export', methods=['GET','POST'])
 def export():   
     global data
-    #data = request.form.getlist('data')
-    #data = [ast.literal_eval(d) for d in data]
+    data = request.form.getlist('data')
+    data = [ast.literal_eval(d) for d in data]
     exported = elasticfuncs.export(data,app.root_path)
     if exported:
-        return send_file(app.root_path + '/exported.csv', as_attachment=True,mimetype='text/csv')
+        result = send_file(app.root_path + '/exported.csv', as_attachment=True,mimetype='text/csv')
+        return result
     return redirect(url_for('home'))
 
 @app.route('/status')
@@ -136,8 +133,8 @@ def search():
     page = int(request.args.get('page', '1'))
     body = {'term': {key:search.lower()}}
     total, data, total_result= s.generalSearch(body=body, index=None,page=page)
-    viewSample = data[:100]
-    total_page = int(total_result/100)+1
+    viewSample = data[:10000]
+    total_page = int(total_result/1000)+1
     query_data = '&options='+key+'&search=' + search
     return render_template('index.html',
                             fmap=fmap,
@@ -171,8 +168,8 @@ def searchForm():
             for o in options:
                 body.append({ 'term' : { o : choices[options.index(o)].lower()}})
             total, data, total_result = s.generalSearch(body=body,index=index, page=page)
-            viewSample = data[:100]
-            total_page = int(total_result/100)+1
+            viewSample = data[:1000]
+            total_page = int(total_result/1000)+1
             query_data='&index='+index
             for i in range(len(options)):
                 query_data=query_data+'&options='+options[i]+'&choice='+choices[i]
@@ -191,10 +188,14 @@ def searchForm():
 @app.route('/manualUpdate', methods=['POST','GET'])
 def manualUpdate():
     if request.method == 'POST':
+        
         index = request.form.get('index').lower()
-        elasticfuncs.checkIndexTask.apply_async((index,None))
+        elasticfuncs.checkIndex(index, None)
+        # elasticfuncs.checkIndexTask.apply_async((index,None))
+        print('submit manual update!!!!!!!!!!!!!!!!!!')
         return redirect(url_for('home'))
-    return render_template('update.html',indices=elasticfuncs.getIndices())
+    indices = elasticfuncs.getIndices()
+    return render_template('update.html',indices=indices)
 
 @app.route('/stopUpdates', methods=['POST','GET'])
 def stopUpdates():

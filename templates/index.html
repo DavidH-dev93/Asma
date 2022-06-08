@@ -9,7 +9,7 @@
       {% endfor %}
       <button type="submit" form="exp" class="btn btn-info" style="width:10vw">Export</button>
     </form>
-    <h1 class="navbar-brand" style="padding-top:0vw;">Show the 100 lines from {{ (current_page-1)*100+1 }} to {{ (current_page)*100 }} lines / {{total_amount}} lines</h1>
+    <h1 class="navbar-brand" style="padding-top:0vw;">Page: {{ current_page }} / {{ total_page }} ----- Total : {{total_amount}} lines (You can see the MAX-1000 lines)</h1>
 
   </div>
   {% endif %}  

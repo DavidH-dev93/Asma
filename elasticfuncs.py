@@ -132,44 +132,23 @@ def addTask(index,number,lines):
     stat = Tasks(index=index,number=number,lines=lines)
     db.session.add(stat)
     db.session.commit()
+
 @task
 def checkIndexTask(index, lines):
+    print("Checking Index task")
     checkIndex(index, lines)
+    return
 
 def checkIndex(index,lines):
+    print('update------------checkIndex----------')
     if lines == None:
         lines = es.cat.count(index, params={"format": "json"})
         lines = lines[0]['count']
-    addTask(index,0,lines)    
-    if getIndices() == [] or getIndices() == [index]:
-        print('aborting') 
-        t = Tasks.query.filter_by(index=index).first()
-        t.number = 1 
-        db.session.commit() 
-        return True
-    es.indices.refresh(index=index)
-    total, index_data = s.indexListAll(index)
-    print(total)
-    # nproc = os.cpu_count() - 1
-    nproc = 1
-    chunk = math.ceil(len(index_data)/nproc)
-    last = math.floor(len(index_data)/nproc)
-    job = []
-    for i in range(nproc):
-        res = ''
-        if i == nproc - 1:
-            res = updatePart(index,index_data[i*chunk:])
-        else:
-            res = updatePart(index,index_data[i*chunk:i*chunk + chunk])    
-        job.append(res)
-    g = group(job)
-    result = g()
-    while not result.successful():
-        continue
-    print(result.successful())
-    t = Tasks.query.filter_by(index=index).first()
-    t.number = 1 
-    db.session.commit()    
+    print('------------lines------------', lines)
+    total, index_data = s.generalIndexListAll(index)
+    print('--------index----------', index_data, total)
+    print('index_data result--------', len(index_data))
+    result = updatePart(index,index_data)
     return True
 
 def updatePart(index,index_data):
@@ -214,7 +193,7 @@ def getCpus(files):
     else:
          return files    
     
-def upload(rootPath,filePath,index,update, filename):
+def upload(rootPath,filePath,index, update, filename):
     print('start upload')
     lines = 0
     print("Processing started")
@@ -383,40 +362,41 @@ def export(data,root):
     global root_
     root_ = root
     try:
-        try:
-            os.system('rm ' + root + '/exports/*')
-        except:
-            pass 
-        nproc = os.cpu_count() - 1
+        # try:
+            # os.system('rm ' + root + '/exports/*')
+            # os.system('touch ' + root + '/exports/exported.csv')
+        # except:
+        #     pass 
+        nproc = 1
         pool_ = Pool(nproc)
         chunk = math.ceil(len(data)/nproc)
         last = (len(data)//nproc)
         for i in range(nproc):
             if i == nproc - 1:
-                pool_.apply_async(removeNullElems, (i,data[i*chunk:],))
+                pool_.apply_async(removeNullElems, (i,data[i*chunk:],root))
             else:
-                pool_.apply_async(removeNullElems, (i,data[i*chunk:i*chunk + chunk],))
+                pool_.apply_async(removeNullElems, (i,data[i*chunk:i*chunk + chunk], root))
         pool_.close()
-        pool_.join()   
+        pool_.join()
         os.system('cat ' + root + '/exports/* > ' + root +'/exported.csv')
         return True
     except Exception as e:
         print(e)
         return False
 
-def removeNullElems(i,dataSlice):
+def removeNullElems(i,dataSlice, root):
     global root_
     for d in dataSlice[:]:
         if 'null' in d.keys():
             del dataSlice[dataSlice.index(d)]['null']
     header = dataSlice[0].keys()
-    with open('/home/data/online/asma' +'/exports/exported' + str(i) + '.csv', 'w+') as f:
-            writer = csv.writer(f, delimiter=',')
-            if i == 0:
-                writer.writerow(header)
-            for d in dataSlice:
-                writer.writerow(d.values())        
-    #exportList.extend(dataSlice) 
+    with open(root + '/exports/exported.csv', 'w+') as f:
+        writer = csv.writer(f, delimiter=',')
+        if i == 0:
+            writer.writerow(header)
+        for d in dataSlice:
+            writer.writerow(d.values())
+    # exportList.extend(dataSlice)
 
 def makeLoadable(d):
     d = d.replace(" \'", " \"")
